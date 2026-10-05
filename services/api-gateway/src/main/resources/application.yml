@@ -1,0 +1,71 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins:
+                  - "http://localhost:5173"   # Vite dev server
+                  - "http://localhost:3000"   # nginx с собранным фронтом
+                allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+                allowed-headers: "*"
+          default-filters:
+            # Token bucket в Redis: 20 запросов/сек на пользователя, всплеск до 40
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                key-resolver: "#{@userKeyResolver}"
+          routes:
+            - id: user-service
+              uri: http://${USER_SERVICE_HOST:localhost}:8081
+              predicates:
+                - Path=/api/auth/**,/api/users/**,/api/branches/**,/api/groups/**,/api/settings/**
+            - id: course-service
+              uri: http://${COURSE_SERVICE_HOST:localhost}:8082
+              predicates:
+                - Path=/api/courses/**,/api/categories/**,/api/enrollments/**,/api/units/**,/api/certificates/**
+            - id: notification-service
+              uri: http://${NOTIFICATION_SERVICE_HOST:localhost}:8083
+              predicates:
+                - Path=/api/notifications/**
+            - id: gamification-service
+              uri: http://${GAMIFICATION_SERVICE_HOST:localhost}:8085
+              predicates:
+                - Path=/api/gamification/**
+            - id: analytics-service
+              uri: http://${ANALYTICS_SERVICE_HOST:localhost}:8084
+              predicates:
+                - Path=/api/analytics/**
+
+jwt:
+  secret: ${JWT_SECRET:jazzlms-super-secret-key-for-teaching-purposes-only-32b}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,metrics,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name},%X{traceId:-},%X{spanId:-}]"

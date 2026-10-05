@@ -1,0 +1,25 @@
+# Источники данных создаются автоматически при старте Grafana.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: Zipkin
+    uid: zipkin
+    type: zipkin
+    url: http://zipkin:9411
+
+  - name: Loki
+    uid: loki
+    type: loki
+    url: http://loki:3100
+    jsonData:
+      # traceId в строке лога становится ссылкой на трейс в Zipkin
+      derivedFields:
+        - name: traceId
+          matcherRegex: '\[[\w-]+,(\w+),\w*\]'
+          url: '$${__value.raw}'
+          datasourceUid: zipkin

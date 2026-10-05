@@ -1,0 +1,46 @@
+// gRPC-контракт user-service.
+// Другие сервисы (например course-service) вызывают эти методы напрямую,
+// без HTTP/JSON: бинарный protobuf поверх HTTP/2 — быстрее и строго типизировано.
+syntax = "proto3";
+
+package kz.jazz.lms.user;
+
+option java_multiple_files = true;
+option java_package = "kz.jazz.lms.grpc.user";
+option java_outer_classname = "UserProto";
+
+service UserService {
+  // Получить пользователя по id
+  rpc GetUser (GetUserRequest) returns (UserResponse);
+  // Проверить, существует ли пользователь и активен ли он
+  rpc UserExists (GetUserRequest) returns (UserExistsResponse);
+  // Получить сразу нескольких пользователей (batch-запрос)
+  rpc GetUsers (GetUsersRequest) returns (UsersResponse);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUsersRequest {
+  repeated string user_ids = 1;
+}
+
+message UserResponse {
+  string id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string email = 4;
+  string username = 5;
+  string user_type = 6;   // SUPER_ADMIN | ADMIN | TRAINER | LEARNER
+  bool active = 7;
+}
+
+message UsersResponse {
+  repeated UserResponse users = 1;
+}
+
+message UserExistsResponse {
+  bool exists = 1;
+  bool active = 2;
+}

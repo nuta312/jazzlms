@@ -1,0 +1,64 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: course-service
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/courses_db
+    username: ${POSTGRES_USER:lms}
+    password: ${POSTGRES_PASSWORD:lms}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+  servlet:
+    multipart:
+      max-file-size: 300MB        # видео-уроки
+      max-request-size: 310MB
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:19092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+server.tomcat.max-swallow-size: -1   # при превышении лимита вернуть 413, а не рвать соединение
+
+# MinIO (S3): endpoint — для сервиса, public-url — каким хранилище видит браузер (presigned-ссылки)
+storage:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9002}
+  public-url: ${MINIO_PUBLIC_URL:http://localhost:9002}
+  access-key: ${MINIO_ACCESS_KEY:jazzlms}
+  secret-key: ${MINIO_SECRET_KEY:jazzlms-secret-key}
+  bucket: lms-content
+  presign-minutes: 120
+
+# Адрес gRPC-сервера user-service. static:// — без service discovery, просто host:port.
+grpc:
+  client:
+    user-service:
+      address: static://${USER_SERVICE_GRPC_HOST:localhost}:${USER_SERVICE_GRPC_PORT:9091}
+      negotiation-type: plaintext
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name},%X{traceId:-},%X{spanId:-}]"

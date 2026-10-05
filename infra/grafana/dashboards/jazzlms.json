@@ -1,0 +1,271 @@
+{
+ "uid": "jazzlms-overview",
+ "title": "JazzLMS — логи и метрики",
+ "tags": [
+  "jazzlms"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "10s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "templating": {
+  "list": [
+   {
+    "name": "service",
+    "label": "Сервис",
+    "type": "query",
+    "datasource": {
+     "type": "loki",
+     "uid": "loki"
+    },
+    "query": {
+     "label": "service",
+     "type": 1
+    },
+    "includeAll": true,
+    "multi": true,
+    "current": {
+     "text": "All",
+     "value": [
+      "$__all"
+     ]
+    },
+    "refresh": 1
+   },
+   {
+    "name": "level",
+    "label": "Уровень",
+    "type": "custom",
+    "query": "INFO,WARN,ERROR,DEBUG",
+    "includeAll": true,
+    "multi": true,
+    "current": {
+     "text": "All",
+     "value": [
+      "$__all"
+     ]
+    },
+    "options": [
+     {
+      "text": "All",
+      "value": "$__all",
+      "selected": true
+     },
+     {
+      "text": "INFO",
+      "value": "INFO",
+      "selected": false
+     },
+     {
+      "text": "WARN",
+      "value": "WARN",
+      "selected": false
+     },
+     {
+      "text": "ERROR",
+      "value": "ERROR",
+      "selected": false
+     },
+     {
+      "text": "DEBUG",
+      "value": "DEBUG",
+      "selected": false
+     }
+    ]
+   },
+   {
+    "name": "search",
+    "label": "Поиск в тексте",
+    "type": "textbox",
+    "query": "",
+    "current": {
+     "text": "",
+     "value": ""
+    }
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "logs",
+   "title": "Логи сервисов (Loki)",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 14
+   },
+   "datasource": {
+    "type": "loki",
+    "uid": "loki"
+   },
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true,
+    "sortOrder": "Descending",
+    "enableLogDetails": true,
+    "dedupStrategy": "none"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "loki"
+     },
+     "expr": "{service=~\"$service\", level=~\"$level\"} |~ \"$search\"",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Ошибки в логах (ERROR / 5 мин)",
+   "gridPos": {
+    "x": 0,
+    "y": 14,
+    "w": 8,
+    "h": 8
+   },
+   "datasource": {
+    "type": "loki",
+    "uid": "loki"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "loki"
+     },
+     "expr": "sum by (service) (count_over_time({service=~\"$service\", level=\"ERROR\"}[5m]))",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "HTTP-запросы в секунду",
+   "gridPos": {
+    "x": 8,
+    "y": 14,
+    "w": 8,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (service) (rate(http_server_requests_seconds_count{service=~\"$service\"}[1m]))",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "HTTP p95 latency, сек",
+   "gridPos": {
+    "x": 16,
+    "y": 14,
+    "w": 8,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_server_requests_seconds_bucket{service=~\"$service\"}[5m])))",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "JVM heap used, MB",
+   "gridPos": {
+    "x": 0,
+    "y": 22,
+    "w": 8,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (service) (jvm_memory_used_bytes{area=\"heap\", service=~\"$service\"}) / 1024 / 1024",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "Kafka: сообщений отправлено / получено",
+   "gridPos": {
+    "x": 8,
+    "y": 22,
+    "w": 8,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (service) (rate(kafka_producer_record_send_total{service=~\"$service\"}[1m]))",
+     "legendFormat": "sent {{service}}",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (service) (rate(kafka_consumer_fetch_manager_records_consumed_total{service=~\"$service\"}[1m]))",
+     "legendFormat": "consumed {{service}}",
+     "refId": "B"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "timeseries",
+   "title": "HikariCP: активные соединения с PostgreSQL",
+   "gridPos": {
+    "x": 16,
+    "y": 22,
+    "w": 8,
+    "h": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "hikaricp_connections_active{service=~\"$service\"}",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    }
+   ]
+  }
+ ]
+}

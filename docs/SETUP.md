@@ -23,8 +23,8 @@ Gradle ставить **не нужно**: в проекте лежит wrapper 
 ## 2. Скачать проект
 
 ```bash
-git clone <адрес репозитория, который дал преподаватель>
-cd JazzLMS
+git clone https://github.com/nuta312/jazzlms.git
+cd jazzlms
 ```
 
 ## 3. Проверить, что порты свободны
@@ -168,7 +168,7 @@ cd frontend && npm install && npm run dev
 | Симптом | Причина и решение |
 |---|---|
 | `Cannot connect to the Docker daemon` | Docker Desktop не запущен — запустите и дождитесь, пока кит перестанет «думать» |
-| `failed to resolve reference ... 401 UNAUTHORIZED` или `No such image` при `up` | образ не скачался, и compose прервал остальные. Проверьте интернет и повторите `up`. Если ошибка про `quay.io/minio/minio` — у вас старая версия `docker-compose.yml`, сделайте `git pull` (MinIO заменён на RustFS) |
+| `failed to resolve reference ... 401 UNAUTHORIZED` или `No such image` при `up` | образ не скачался, и compose прервал остальные. Проверьте интернет и повторите `up`. Если ошибка про `quay.io/minio/minio` — у вас старая версия `docker-compose.yml`, выполните `git pull` (MinIO заменён на RustFS) |
 | `port is already allocated` / `address already in use` | порт занят другой программой (см. шаг 3). Остановите её и повторите `up` |
 | `./gradlew: Permission denied` | `chmod +x gradlew` |
 | Сборка падает с `Unsupported class file major version` или `invalid source release: 21` | у вас не JDK 21. Проверьте `java -version`, задайте `JAVA_HOME` на JDK 21 |

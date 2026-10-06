@@ -100,11 +100,97 @@ curl http://localhost:8080/actuator/health
 | Grafana — логи всех сервисов | <http://localhost:3001> | admin / admin |
 | Zipkin — путь запроса по сервисам | <http://localhost:9411> | — |
 | RustFS — файлы уроков (бакет `lms-content`) | <http://localhost:9003/rustfs/console/> | jazzlms / jazzlms-secret-key |
-| PostgreSQL (pgAdmin / DBeaver) | host `localhost`, port `5432`, базы `users_db` и `courses_db` | lms / lms |
+| PostgreSQL (DBeaver / pgAdmin) | см. раздел 7 | lms / lms |
 | MongoDB (Compass) | `mongodb://localhost:27019` | — |
 | Redis | `docker exec -it jazzlms-redis-1 redis-cli` | — |
 
-## 7. Ежедневная работа
+## 7. Подключиться к базам данных
+
+Все базы работают в Docker и открыты на `localhost`, поэтому подходит любой клиент. Ниже — DBeaver
+(бесплатный, один инструмент на все базы) и pgAdmin.
+
+### PostgreSQL через DBeaver
+
+1. Установите [DBeaver Community](https://dbeaver.io/download/).
+2. **Database → New Database Connection**, выберите **PostgreSQL**, нажмите **Next**.
+3. На вкладке **Main** заполните:
+
+| Поле | Значение |
+|---|---|
+| Connect by | Host |
+| Host | `localhost` |
+| Port | `5432` |
+| Database | `postgres` |
+| Authentication | Username/password |
+| Username | `lms` |
+| Password | `lms` |
+
+4. Обязательно отметьте галочку **Show all databases** справа от поля Database. Без неё DBeaver покажет только
+   служебную базу `postgres`, а нужные нам `users_db` и `courses_db` не появятся.
+5. Нажмите **Test Connection**. При первом подключении DBeaver предложит скачать драйвер PostgreSQL — согласитесь.
+   Должно появиться окно `Connected`.
+6. Нажмите **Finish**.
+
+В дереве слева разверните подключение → **Databases**. Там три базы:
+
+| База | Чья | Что внутри |
+|---|---|---|
+| `users_db` | user-service | `users`, `branches`, `groups`, `account_settings` |
+| `courses_db` | course-service | `courses`, `units`, `enrollments`, `questions`, `tests`, `test_attempts`, `certificates` |
+| `postgres` | служебная | пусто |
+
+Таблицы лежат в `<база> → Schemas → public → Tables`. Двойной щелчок по таблице открывает её содержимое
+(вкладка **Data**). SQL-запрос: выделите базу и нажмите **Cmd+]** (macOS) или **Ctrl+]** (Windows), например:
+
+```sql
+SELECT username, user_type, last_login_at FROM users ORDER BY last_login_at DESC;
+```
+
+Обратите внимание: у каждого сервиса **своя** база. Из `courses_db` нельзя сделать `JOIN` на таблицу `users` —
+course-service получает имена пользователей только через gRPC. Это и есть принцип «database per service».
+
+### PostgreSQL через pgAdmin
+
+1. **Servers → правой кнопкой → Register → Server…**
+2. Вкладка **General**: Name — любое, например `JazzLMS`.
+3. Вкладка **Connection**: Host `localhost`, Port `5432`, Maintenance database `postgres`,
+   Username `lms`, Password `lms`, включите **Save password**. Нажмите **Save**.
+4. Базы: **JazzLMS → Databases → users_db / courses_db → Schemas → public → Tables**.
+   Содержимое таблицы: правой кнопкой → **View/Edit Data → All Rows**. Запросы: **Tools → Query Tool**.
+
+### MongoDB
+
+В DBeaver драйвер MongoDB есть только в платной версии, поэтому удобнее
+[MongoDB Compass](https://www.mongodb.com/try/download/compass). Строка подключения:
+
+```
+mongodb://localhost:27019
+```
+
+Порт **27019**, а не стандартный 27017. Базы: `notifications_db` (правила и история уведомлений),
+`analytics_db` (лента событий Timeline), `gamification_db` (очки, бейджи, настройки геймификации).
+
+### Redis
+
+Графический клиент не обязателен — достаточно консоли внутри контейнера:
+
+```bash
+docker exec -it jazzlms-redis-1 redis-cli
+```
+
+Полезные команды: `KEYS *` — все ключи, `GET users::<id>` — закэшированный пользователь,
+`ZREVRANGE leaderboard:points 0 5 WITHSCORES` — таблица лидеров, `TTL login:fail:<логин>` — блокировка входа.
+
+### Если не подключается
+
+| Симптом | Что проверить |
+|---|---|
+| `Connection refused` | контейнер не запущен: `docker compose ps`, должен быть `jazzlms-postgres-1 ... healthy` |
+| `password authentication failed for user "lms"` | на 5432 отвечает другой PostgreSQL, установленный на вашем компьютере. Остановите его или смените порт в `docker-compose.yml` |
+| В списке только база `postgres` | не отмечена галочка **Show all databases** (DBeaver) |
+| Таблиц нет, база пустая | сервис ещё не стартовал: таблицы создаёт Flyway при первом запуске user-service / course-service |
+
+## 8. Ежедневная работа
 
 ```bash
 docker compose --profile app stop
@@ -142,7 +228,7 @@ docker compose --profile app up -d --build course-service
 
 **Изменили фронтенд?** `docker compose --profile app up -d --build frontend`.
 
-## 8. Режим разработки (сервисы из IntelliJ IDEA)
+## 9. Режим разработки (сервисы из IntelliJ IDEA)
 
 Удобно для отладки с точками останова: в Docker работает только инфраструктура, сервисы — из IDE.
 
@@ -163,7 +249,7 @@ cd frontend && npm install && npm run dev
 
 Фронт с горячей перезагрузкой: <http://localhost:5173>.
 
-## 9. Если что-то пошло не так
+## 10. Если что-то пошло не так
 
 | Симптом | Причина и решение |
 |---|---|

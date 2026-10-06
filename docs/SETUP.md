@@ -1,7 +1,7 @@
 # Как развернуть JazzLMS у себя (инструкция для студентов)
 
 Цель: за 15–20 минут поднять на своём компьютере всю систему — 6 Java-сервисов, фронтенд, PostgreSQL,
-MongoDB, Redis, Kafka, MinIO и Grafana — и войти в неё как администратор.
+MongoDB, Redis, Kafka, S3-хранилище (RustFS) и Grafana — и войти в неё как администратор.
 
 ## 1. Что установить
 
@@ -41,7 +41,7 @@ cd JazzLMS
 | 6379 | Redis |
 | 19092 | Kafka |
 | 8090 | Kafka UI |
-| 9002, 9003 | MinIO (файлы уроков) |
+| 9002, 9003 | RustFS — S3-хранилище файлов уроков (API и консоль) |
 | 3001, 3100, 9090, 9411 | Grafana, Loki, Prometheus, Zipkin |
 
 Чаще всего мешает **локально установленный PostgreSQL на 5432** или другой проект на 8080 — остановите их.
@@ -99,7 +99,7 @@ curl http://localhost:8080/actuator/health
 | Kafka UI — топики и события | <http://localhost:8090> | — |
 | Grafana — логи всех сервисов | <http://localhost:3001> | admin / admin |
 | Zipkin — путь запроса по сервисам | <http://localhost:9411> | — |
-| MinIO — файлы уроков | <http://localhost:9003> | jazzlms / jazzlms-secret-key |
+| RustFS — файлы уроков (бакет `lms-content`) | <http://localhost:9003/rustfs/console/> | jazzlms / jazzlms-secret-key |
 | PostgreSQL (pgAdmin / DBeaver) | host `localhost`, port `5432`, базы `users_db` и `courses_db` | lms / lms |
 | MongoDB (Compass) | `mongodb://localhost:27019` | — |
 | Redis | `docker exec -it jazzlms-redis-1 redis-cli` | — |
@@ -150,7 +150,7 @@ docker compose --profile app up -d --build course-service
 docker compose up -d
 ```
 
-Без `--profile app` поднимаются только базы, Kafka, Redis, MinIO и мониторинг.
+Без `--profile app` поднимаются только базы, Kafka, Redis, RustFS и мониторинг.
 
 Откройте папку проекта в IntelliJ IDEA (она сама импортирует Gradle) и запустите классы `*Application`
 каждого сервиса: `user-service` **первым**, затем `course-service`, `notification-service`,
@@ -168,6 +168,7 @@ cd frontend && npm install && npm run dev
 | Симптом | Причина и решение |
 |---|---|
 | `Cannot connect to the Docker daemon` | Docker Desktop не запущен — запустите и дождитесь, пока кит перестанет «думать» |
+| `failed to resolve reference ... 401 UNAUTHORIZED` или `No such image` при `up` | образ не скачался, и compose прервал остальные. Проверьте интернет и повторите `up`. Если ошибка про `quay.io/minio/minio` — у вас старая версия `docker-compose.yml`, сделайте `git pull` (MinIO заменён на RustFS) |
 | `port is already allocated` / `address already in use` | порт занят другой программой (см. шаг 3). Остановите её и повторите `up` |
 | `./gradlew: Permission denied` | `chmod +x gradlew` |
 | Сборка падает с `Unsupported class file major version` или `invalid source release: 21` | у вас не JDK 21. Проверьте `java -version`, задайте `JAVA_HOME` на JDK 21 |
@@ -175,7 +176,7 @@ cd frontend && npm install && npm run dev
 | Контейнер сервиса постоянно перезапускается | мало памяти у Docker (нужно 6 ГБ+) или упала миграция БД — смотрите логи этого сервиса |
 | После `git pull` сервис не стартует, в логах `Flyway ... checksum mismatch` | схема БД изменилась. Проще всего: `docker compose --profile app down -v` и поднять заново |
 | Вход заблокирован: `Account is locked` | сработала защита от перебора (3 неверных пароля). Подождите или снимите: `docker exec jazzlms-redis-1 redis-cli DEL login:fail:<логин>` |
-| Видео/файл урока не открывается | контейнер `minio` не запущен: `docker compose --profile app ps` |
+| Видео/файл урока не открывается | контейнер `minio` (это RustFS, имя историческое) не запущен: `docker compose --profile app ps` |
 | Всё сломалось и непонятно что | `docker compose --profile app down -v`, затем шаг 4 заново |
 
 Перед тем как звать преподавателя, приложите вывод `docker compose --profile app ps` и логи упавшего сервиса.

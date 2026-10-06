@@ -206,7 +206,7 @@ sequenceDiagram
 |---|---|---|
 | user-service | PostgreSQL `users_db` | users |
 | course-service | PostgreSQL `courses_db` | categories, courses, enrollments, units, unit_progress |
-| course-service | MinIO бакет `lms-content` | файлы уроков (видео, презентации) |
+| course-service | S3-бакет `lms-content` (RustFS; раньше MinIO, его образы сняли с публикации) | файлы уроков (видео, презентации) |
 | notification-service | MongoDB `notifications_db` | notification_rules, notification_messages |
 | analytics-service | MongoDB `analytics_db` + Redis | activity_events; stats:*, leaderboard:active-users |
 | gamification-service | MongoDB `gamification_db` + Redis | profiles, processed_events; leaderboard:points / levels / badges |

@@ -22,7 +22,7 @@
 | Аутентификация | JWT (jjwt), BCrypt | `JwtService`, `JwtAuthFilter` |
 | Наблюдаемость | Actuator, Micrometer → **Prometheus**, Tracing → **Zipkin**, Kafka UI | `docker-compose.yml` |
 | Геймификация | **gamification-service**: очки, уровни, бейджи; Kafka → MongoDB, лидерборд в Redis ZSET, имена по gRPC | `services/gamification-service` |
-| Файлы уроков | **MinIO** (S3 API): видео и презентации, presigned URL, multipart upload | `course-service/storage`, `UnitController` |
+| Файлы уроков | **S3-хранилище** (RustFS, совместим с MinIO; клиент — MinIO Java SDK): видео и презентации, presigned URL, multipart upload | `course-service/storage`, `UnitController` |
 | Логи | **Grafana + Loki + Promtail**: логи всех контейнеров в одном UI, traceId → Zipkin | `infra/grafana`, `infra/loki`, `infra/promtail` |
 | Фронтенд | **React 18 + Vite**, React Router, Recharts, nginx | `frontend/` |
 | Инфраструктура | **Docker Compose**, multi-stage Dockerfile | `docker-compose.yml`, `*/Dockerfile` |
@@ -114,7 +114,7 @@ cd frontend && npm install && npm run dev       # http://localhost:5173, /api п
 | Zipkin (трассировка запроса через все сервисы) | http://localhost:9411 |
 | **Grafana** — логи всех сервисов, метрики, трейсы (admin / admin, просмотр без логина) | http://localhost:3001 |
 | Prometheus (сырые метрики, targets) | http://localhost:9090 |
-| MinIO console — бакет `lms-content` с файлами уроков (jazzlms / jazzlms-secret-key) | http://localhost:9003 |
+| Консоль S3-хранилища (RustFS) — бакет `lms-content` с файлами уроков (jazzlms / jazzlms-secret-key) | http://localhost:9003/rustfs/console/ |
 | Health любого сервиса | http://localhost:808x/actuator/health |
 
 ## Сценарий для демонстрации на занятии

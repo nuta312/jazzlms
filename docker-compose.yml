@@ -84,16 +84,16 @@ services:
 
   minio:
     # S3-совместимое объектное хранилище: сюда course-service кладёт видео и презентации.
-    # Консоль (просмотр бакетов): http://localhost:9003  логин jazzlms / jazzlms-secret-key
-    # образ берём с quay.io: с Docker Hub MinIO убрали
-    image: quay.io/minio/minio:latest
-    command: server /data --console-address ":9001"
+    # Раньше здесь был MinIO, но его образы убрали и с Docker Hub, и с quay.io (401 при pull).
+    # RustFS — совместимая замена с тем же S3 API и консолью; код course-service (MinIO Java SDK) не менялся.
+    # Имя сервиса оставлено "minio", чтобы не трогать адреса в application.yml. Консоль: http://localhost:9003
+    image: rustfs/rustfs:1.0.1
     ports: ["9002:9000", "9003:9001"]
     environment:
-      MINIO_ROOT_USER: jazzlms
-      MINIO_ROOT_PASSWORD: jazzlms-secret-key
+      RUSTFS_ACCESS_KEY: jazzlms
+      RUSTFS_SECRET_KEY: jazzlms-secret-key
     volumes:
-      - minio-data:/data
+      - rustfs-data:/data
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -258,7 +258,7 @@ services:
 
 volumes:
   pg-data:
-  minio-data:
+  rustfs-data:
   mongo-data:
   loki-data:
   prom-data:

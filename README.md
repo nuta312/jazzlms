@@ -302,3 +302,6 @@ JazzLMS/
 ## Задания для студентов
 
 Идеи в порядке усложнения — см. раздел «Упражнения» в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#упражнения).
+
+SQL-задачи на реальных таблицах проекта (JOIN, агрегаты, оконные функции, JSONB, транзакции) —
+[docs/SQL_EXERCISES.md](docs/SQL_EXERCISES.md), решения в `docs/sql/`.
